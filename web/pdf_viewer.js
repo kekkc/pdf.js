@@ -127,74 +127,6 @@ function isValidAnnotationEditorMode(mode) {
  *   rendering. The default value is `false`.
  */
 
-class PDFPageViewBuffer {
-  // Here we rely on the fact that `Set`s preserve the insertion order.
-  #buf = new Set();
-
-  #size = 0;
-
-  constructor(size) {
-    this.#size = size;
-  }
-
-  push(view) {
-    const buf = this.#buf;
-    if (buf.has(view)) {
-      buf.delete(view); // Move the view to the "end" of the buffer.
-    }
-    buf.add(view);
-
-    if (buf.size > this.#size) {
-      this.#destroyFirstView();
-    }
-  }
-
-  /**
-   * After calling resize, the size of the buffer will be `newSize`.
-   * The optional parameter `idsToKeep` is, if present, a Set of page-ids to
-   * push to the back of the buffer, delaying their destruction. The size of
-   * `idsToKeep` has no impact on the final size of the buffer; if `idsToKeep`
-   * is larger than `newSize`, some of those pages will be destroyed anyway.
-   */
-  resize(newSize, idsToKeep = null) {
-    this.#size = newSize;
-
-    const buf = this.#buf;
-    if (idsToKeep) {
-      const ii = buf.size;
-      let i = 1;
-      for (const view of buf) {
-        if (idsToKeep.has(view.id)) {
-          buf.delete(view); // Move the view to the "end" of the buffer.
-          buf.add(view);
-        }
-        if (++i > ii) {
-          break;
-        }
-      }
-    }
-
-    while (buf.size > this.#size) {
-      this.#destroyFirstView();
-    }
-  }
-
-  has(view) {
-    return this.#buf.has(view);
-  }
-
-  [Symbol.iterator]() {
-    return this.#buf.keys();
-  }
-
-  #destroyFirstView() {
-    const firstView = this.#buf.keys().next().value;
-
-    firstView?.destroy();
-    this.#buf.delete(firstView);
-  }
-}
-
 /**
  * Simple viewer control to display PDF content/pages.
  */
@@ -1104,7 +1036,6 @@ class PDFViewer {
     this._currentScale = UNKNOWN_SCALE;
     this._currentScaleValue = null;
     this._pageLabels = null;
-    this.#buffer = new PDFPageViewBuffer(DEFAULT_CACHE_SIZE);
     this._location = null;
     this._pagesRotation = 0;
     this._optionalContentConfigPromise = null;
@@ -2386,4 +2317,4 @@ class PDFViewer {
   }
 }
 
-export { PagesCountLimit, PDFPageViewBuffer, PDFViewer };
+export { PagesCountLimit, PDFViewer };
